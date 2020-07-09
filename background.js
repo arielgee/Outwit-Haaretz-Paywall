@@ -17,7 +17,7 @@
 	const CSS_RULE_BODY =	"html:not([amp4ads]) body {" +
 								"margin-right: 15% !important; " +
 								"margin-left: 40% !important; " +
-								"font-size: 99.8% !important; " +
+								"font-size: 100% !important; " +
 							"} ";
 
 	const CSS_RULE_HIDE_STUFF =	".c-list-honda, " +
