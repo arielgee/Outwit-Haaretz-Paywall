@@ -1,2 +1,2 @@
 # Outwit-Haaretz-Paywall
- Outwit the Haaretz paywall.
+ [WebExtension] Outwit the Haaretz paywall. 
