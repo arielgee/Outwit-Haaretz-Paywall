@@ -14,6 +14,37 @@
 	const QUERY_STRING_CDN = "?amp_js_v=0.1";
 	// const QUERY_STRING_CDN_FULL = "?usqp=mq331AQFKAGwASA%3D&amp_js_v=0.1#aoh=15939449457246&referrer=https%3A%2F%2Fwww.google.com&amp_tf=From%20%251%24s&ampshare=https%3A%2F%2Fwww.haaretz.co.il";
 
+
+	const WEB_REQUEST_FILTER = {
+		urls: [
+			HOST_HAARETZ + "/*.premium*",
+			HOST_THEMARKER + "/*.premium*"
+		],
+		types: [ "main_frame" ]
+	};
+
+	const TABS_ON_UPDATED_FILTER = {
+		urls: [
+			URL_CDN_HRTZ + "*",
+			URL_CDN_MRKR + "*"
+		],
+		properties: [ "status" ]
+	};
+
+
+	const BROWSER_ACTION_IMAGE_PATHS = {
+		16: "/icons/outwit-16.png",
+		32: "/icons/outwit-32.png",
+		48: "/icons/outwit-48.png"
+	};
+
+	const BROWSER_ACTION_DISABLE_IMAGE_PATHS = {
+		16: "/icons/outwit-disabled-16.png",
+		32: "/icons/outwit-disabled-32.png",
+		48: "/icons/outwit-disabled-48.png"
+	};
+
+
 	const CSS_RULE_BODY =	"html:not([amp4ads]) body {" +
 								"margin-right: 15% !important;" +
 								"margin-left: 40% !important;" +
@@ -32,33 +63,45 @@
 
 	const CSS_RULES_PRETTY_PAGE = CSS_RULE_BODY;	// CSS_RULE_HIDE_STUFF is removed by uBlock
 
+	let m_extensionEnableStatus;
+
 
 	initialization();
 
 	////////////////////////////////////////////////////////////////////////////////////
 	function initialization() {
 
-		const WEB_REQUEST_FILTER = {
-			urls: [
-				HOST_HAARETZ + "/*.premium*",
-				HOST_THEMARKER + "/*.premium*"
-			],
-			types: [ "main_frame" ]
-		};
+		enableOutwitHaaretzPaywall();
+		browser.browserAction.onClicked.addListener(onBrowserActionClicked);
+	}
 
-		const TABS_ON_UPDATED_FILTER = {
-			urls: [
-				URL_CDN_HRTZ + "*",
-				URL_CDN_MRKR + "*"
-			],
-			properties: [ "status" ]
-		};
+	////////////////////////////////////////////////////////////////////////////////////
+	function enableOutwitHaaretzPaywall(enable = true) {
 
+		m_extensionEnableStatus = enable;
 
-		// redirect some URL to cdn.ampproject.org
-		browser.webRequest.onHeadersReceived.addListener(onWebRequestHeadersReceived, WEB_REQUEST_FILTER, [ "blocking" ]);
-		browser.tabs.onUpdated.addListener(onTabsUpdated, TABS_ON_UPDATED_FILTER);
-		browser.tabs.onAttached.addListener(onTabsAttached);
+		if(m_extensionEnableStatus && !browser.webRequest.onHeadersReceived.hasListener(onWebRequestHeadersReceived)) {
+
+			// redirect some URLs to cdn.ampproject.org
+			browser.webRequest.onHeadersReceived.addListener(onWebRequestHeadersReceived, WEB_REQUEST_FILTER, [ "blocking" ]);
+			browser.tabs.onUpdated.addListener(onTabsUpdated, TABS_ON_UPDATED_FILTER);
+			browser.tabs.onAttached.addListener(onTabsAttached);
+
+		} else if(!m_extensionEnableStatus && browser.webRequest.onHeadersReceived.hasListener(onWebRequestHeadersReceived)) {
+
+			browser.webRequest.onHeadersReceived.removeListener(onWebRequestHeadersReceived);
+			browser.tabs.onUpdated.removeListener(onTabsUpdated);
+			browser.tabs.onAttached.removeListener(onTabsAttached);
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function onBrowserActionClicked(tab) {
+
+		enableOutwitHaaretzPaywall(!m_extensionEnableStatus);
+
+		browser.browserAction.setTitle({ title: (m_extensionEnableStatus ? "Enable" : "Disable") + " Outwit Haaretz Paywall" });
+		browser.browserAction.setIcon({ path: m_extensionEnableStatus ? BROWSER_ACTION_IMAGE_PATHS : BROWSER_ACTION_DISABLE_IMAGE_PATHS });
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
