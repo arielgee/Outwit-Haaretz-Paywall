@@ -3,7 +3,7 @@
 	"applications": {
 		"gecko": {
 			"id": "outwit-haaretz-paywall@webExtension.arielg.il",
-			"strict_min_version": "78.0"
+			"strict_min_version": "68.0"
 		}
 	},
 	"name": "Outwit Haaretz Paywall",
