@@ -8,7 +8,7 @@
 	},
 	"name": "Outwit Haaretz Paywall",
 	"short_name": "OHP",
-	"version": "1.3",
+	"version": "1.4",
 	"description": "Outwit the Haaretz paywall.",
 	"author": "arielg",
 	"permissions": [
