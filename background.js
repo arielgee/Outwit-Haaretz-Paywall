@@ -31,30 +31,28 @@
 	};
 
 
-	const BROWSER_ACTION_IMAGE_PATHS = {
-		16: "/icons/outwit-16.png",
-		32: "/icons/outwit-32.png",
-		48: "/icons/outwit-48.png"
-	};
-
-	const BROWSER_ACTION_IGNORE_NEXT_IMAGE_PATHS = {
-		16: "/icons/outwit-ignore-next-16.png",
-		32: "/icons/outwit-ignore-next-32.png",
-		48: "/icons/outwit-ignore-next-48.png"
-	};
-
-	const BROWSER_ACTION_DISABLE_IMAGE_PATHS = {
-		16: "/icons/outwit-disabled-16.png",
-		32: "/icons/outwit-disabled-32.png",
-		48: "/icons/outwit-disabled-48.png"
-	};
+	const BROWSER_ACTION_TITLE = browser.runtime.getManifest().browser_action.default_title;
 
 	const OHP_STATE = {
-		enabled: 0,
-		ignoreNextRequest: 1,
-		disabled: 2
-	};
 
+		enabled: {
+			id: 0,
+			title: BROWSER_ACTION_TITLE + " - Enabled",
+			icon: "/icons/outwit.svg"
+		},
+
+		ignoreNextRequest: {
+			id: 1,
+			title: BROWSER_ACTION_TITLE + " - Ignore Next",
+			icon: "/icons/outwit-ignore-next.svg"
+		},
+
+		disabled: {
+			id: 2,
+			title: BROWSER_ACTION_TITLE + " - Disabled",
+			icon: "/icons/outwit-disabled.svg"
+		}
+	}
 
 
 	const CSS_RULES_PRETTY_PAGE =	"html:not([amp4ads]) body {" +
@@ -63,7 +61,7 @@
 										"font-size: 100% !important;" +
 									"}";
 
-	let m_ohpState;
+	let m_ohpStateId;
 
 
 	initialization();
@@ -71,7 +69,7 @@
 	////////////////////////////////////////////////////////////////////////////////////
 	function initialization() {
 
-		m_ohpState = OHP_STATE.enabled;
+		m_ohpStateId = OHP_STATE.enabled.id;
 		handleOHPListeners();
 		handleBrowserButtonUI();
 		browser.browserAction.onClicked.addListener(onBrowserActionClicked);
@@ -86,15 +84,15 @@
 	////////////////////////////////////////////////////////////////////////////////////
 	function onBrowserActionClicked(tab) {
 
-		if(m_ohpState === OHP_STATE.enabled) {
-			m_ohpState = OHP_STATE.ignoreNextRequest;
-		} else if(m_ohpState === OHP_STATE.ignoreNextRequest) {
-			m_ohpState = OHP_STATE.disabled;
-		} else if(m_ohpState === OHP_STATE.disabled) {
-			m_ohpState = OHP_STATE.enabled;
+		if(m_ohpStateId === OHP_STATE.enabled.id) {
+			m_ohpStateId = OHP_STATE.ignoreNextRequest.id;
+		} else if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
+			m_ohpStateId = OHP_STATE.disabled.id;
+		} else if(m_ohpStateId === OHP_STATE.disabled.id) {
+			m_ohpStateId = OHP_STATE.enabled.id;
 		}
 
-		handleOHPListeners([ OHP_STATE.enabled, OHP_STATE.ignoreNextRequest ].includes(m_ohpState));
+		handleOHPListeners([ OHP_STATE.enabled.id, OHP_STATE.ignoreNextRequest.id ].includes(m_ohpStateId));
 		handleBrowserButtonUI();
 	}
 
@@ -103,7 +101,7 @@
 		switch (command) {
 
 			case "kb-ignore-next-request":
-				m_ohpState = OHP_STATE.ignoreNextRequest;
+				m_ohpStateId = OHP_STATE.ignoreNextRequest.id;
 				handleOHPListeners();
 				handleBrowserButtonUI();
 				break;
@@ -120,10 +118,10 @@
 
 			if(details.statusCode === 200) {
 
-				if(m_ohpState === OHP_STATE.ignoreNextRequest) {
-					m_ohpState = OHP_STATE.enabled;
+				if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
+					m_ohpStateId = OHP_STATE.enabled.id;
 					handleBrowserButtonUI();
-				} else if(m_ohpState === OHP_STATE.enabled) {
+				} else if(m_ohpStateId === OHP_STATE.enabled.id) {
 					if(details.url.startsWith(HOST_HAARETZ)) {
 						objResolved = { redirectUrl: details.url.replace(RX_HAARETZ, URL_CDN_HRTZ + "$2" + QUERY_STRING_CDN) };
 					} else if(details.url.startsWith(HOST_THEMARKER)) {
@@ -177,21 +175,18 @@
 	////////////////////////////////////////////////////////////////////////////////////
 	function handleBrowserButtonUI() {
 
-		let title, images;
+		let state;
 
-		if(m_ohpState === OHP_STATE.enabled) {
-			title = "OHP - Enabled";
-			images = BROWSER_ACTION_IMAGE_PATHS;
-		} else if(m_ohpState === OHP_STATE.ignoreNextRequest) {
-			title = "OHP - Ignore Next";
-			images = BROWSER_ACTION_IGNORE_NEXT_IMAGE_PATHS
-		} else if(m_ohpState === OHP_STATE.disabled) {
-			title = "OHP - Disabled";
-			images = BROWSER_ACTION_DISABLE_IMAGE_PATHS;
+		if(m_ohpStateId === OHP_STATE.enabled.id) {
+			state = OHP_STATE.enabled;
+		} else if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
+			state = OHP_STATE.ignoreNextRequest;
+		} else if(m_ohpStateId === OHP_STATE.disabled.id) {
+			state = OHP_STATE.disabled;
 		}
 
-		browser.browserAction.setTitle({ title: title });
-		browser.browserAction.setIcon({ path: images });
+		browser.browserAction.setTitle({ title: state.title });
+		browser.browserAction.setIcon({ path: state.icon });
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
