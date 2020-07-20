@@ -25,13 +25,15 @@
 		"48": "/icons/outwit-48.png"
 	},
 	"browser_action": {
-		"browser_style": true,
-		"default_title": "Disable Outwit Haaretz Paywall",
-		"default_icon": {
-			"16": "/icons/outwit-16.png",
-			"32": "/icons/outwit-32.png",
-			"48": "/icons/outwit-48.png"
-			}
+		"browser_style": true
+	},
+	"commands": {
+		"kb-ignore-next-request": {
+			"suggested_key": {
+				"default": "Alt+Shift+Z"
+			},
+			"description": "Ignore next Request"
+		}
 	},
 	"background": {
 		"scripts": [

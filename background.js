@@ -38,12 +38,23 @@
 		48: "/icons/outwit-48.png"
 	};
 
+	const BROWSER_ACTION_IGNORE_NEXT_IMAGE_PATHS = {
+		16: "/icons/outwit-ignore-next-16.png",
+		32: "/icons/outwit-ignore-next-32.png",
+		48: "/icons/outwit-ignore-next-48.png"
+	};
+
 	const BROWSER_ACTION_DISABLE_IMAGE_PATHS = {
 		16: "/icons/outwit-disabled-16.png",
 		32: "/icons/outwit-disabled-32.png",
 		48: "/icons/outwit-disabled-48.png"
 	};
 
+	const OHP_STATE = {
+		enabled: 0,
+		ignoreNextRequest: 1,
+		disabled: 2
+	};
 
 	const CSS_RULE_BODY =	"html:not([amp4ads]) body {" +
 								"margin-right: 15% !important;" +
@@ -63,7 +74,7 @@
 
 	const CSS_RULES_PRETTY_PAGE = CSS_RULE_BODY;	// CSS_RULE_HIDE_STUFF is removed by uBlock
 
-	let m_extensionEnableStatus;
+	let m_ohpState;
 
 
 	initialization();
@@ -71,37 +82,44 @@
 	////////////////////////////////////////////////////////////////////////////////////
 	function initialization() {
 
-		enableOutwitHaaretzPaywall();
+		m_ohpState = OHP_STATE.enabled;
+		handleOHPListeners();
+		handleBrowserButtonUI();
 		browser.browserAction.onClicked.addListener(onBrowserActionClicked);
+		browser.commands.onCommand.addListener(onCommands);
 	}
+
 
 	////////////////////////////////////////////////////////////////////////////////////
-	function enableOutwitHaaretzPaywall(enable = true) {
-
-		m_extensionEnableStatus = enable;
-
-		if(m_extensionEnableStatus && !browser.webRequest.onHeadersReceived.hasListener(onWebRequestHeadersReceived)) {
-
-			// redirect some URLs to cdn.ampproject.org
-			browser.webRequest.onHeadersReceived.addListener(onWebRequestHeadersReceived, WEB_REQUEST_FILTER, [ "blocking" ]);
-			browser.tabs.onUpdated.addListener(onTabsUpdated, TABS_ON_UPDATED_FILTER);
-			browser.tabs.onAttached.addListener(onTabsAttached);
-
-		} else if(!m_extensionEnableStatus && browser.webRequest.onHeadersReceived.hasListener(onWebRequestHeadersReceived)) {
-
-			browser.webRequest.onHeadersReceived.removeListener(onWebRequestHeadersReceived);
-			browser.tabs.onUpdated.removeListener(onTabsUpdated);
-			browser.tabs.onAttached.removeListener(onTabsAttached);
-		}
-	}
+	//////////  E  V  E  N  T     L  I  S  T  E  N  E  R  S  ///////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
 
 	////////////////////////////////////////////////////////////////////////////////////
 	function onBrowserActionClicked(tab) {
 
-		enableOutwitHaaretzPaywall(!m_extensionEnableStatus);
+		if(m_ohpState === OHP_STATE.enabled) {
+			m_ohpState = OHP_STATE.ignoreNextRequest;
+		} else if(m_ohpState === OHP_STATE.ignoreNextRequest) {
+			m_ohpState = OHP_STATE.disabled;
+		} else if(m_ohpState === OHP_STATE.disabled) {
+			m_ohpState = OHP_STATE.enabled;
+		}
 
-		browser.browserAction.setTitle({ title: (m_extensionEnableStatus ? "Enable" : "Disable") + " Outwit Haaretz Paywall" });
-		browser.browserAction.setIcon({ path: m_extensionEnableStatus ? BROWSER_ACTION_IMAGE_PATHS : BROWSER_ACTION_DISABLE_IMAGE_PATHS });
+		handleOHPListeners([ OHP_STATE.enabled, OHP_STATE.ignoreNextRequest ].includes(m_ohpState));
+		handleBrowserButtonUI();
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function onCommands(command) {
+		switch (command) {
+
+			case "kb-ignore-next-request":
+				m_ohpState = OHP_STATE.ignoreNextRequest;
+				handleOHPListeners();
+				handleBrowserButtonUI();
+				break;
+				//////////////////////////////////////////////////////////////
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
@@ -110,12 +128,18 @@
 		return new Promise((resolve) => {
 
 			let objResolved = {};
+
 			if(details.statusCode === 200) {
 
-				if(details.url.startsWith(HOST_HAARETZ)) {
-					objResolved = { redirectUrl: details.url.replace(RX_HAARETZ, URL_CDN_HRTZ + "$2" + QUERY_STRING_CDN) };
-				} else if(details.url.startsWith(HOST_THEMARKER)) {
-					objResolved = { redirectUrl: details.url.replace(RX_THEMARKER, URL_CDN_MRKR + "$2" + QUERY_STRING_CDN) };
+				if(m_ohpState === OHP_STATE.ignoreNextRequest) {
+					m_ohpState = OHP_STATE.enabled;
+					handleBrowserButtonUI();
+				} else if(m_ohpState === OHP_STATE.enabled) {
+					if(details.url.startsWith(HOST_HAARETZ)) {
+						objResolved = { redirectUrl: details.url.replace(RX_HAARETZ, URL_CDN_HRTZ + "$2" + QUERY_STRING_CDN) };
+					} else if(details.url.startsWith(HOST_THEMARKER)) {
+						objResolved = { redirectUrl: details.url.replace(RX_THEMARKER, URL_CDN_MRKR + "$2" + QUERY_STRING_CDN) };
+					}
 				}
 			}
 			resolve(objResolved);
@@ -136,6 +160,49 @@
 				handleTabChangedState(tabId);
 			}
 		});
+	}
+
+
+	////////////////////////////////////////////////////////////////////////////////////
+	//////////  H  A  N  D  L  E  S  ///////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function handleOHPListeners(addListeners = true) {
+
+		if(addListeners && !browser.webRequest.onHeadersReceived.hasListener(onWebRequestHeadersReceived)) {
+
+			// redirect some URLs to cdn.ampproject.org
+			browser.webRequest.onHeadersReceived.addListener(onWebRequestHeadersReceived, WEB_REQUEST_FILTER, [ "blocking" ]);
+			browser.tabs.onUpdated.addListener(onTabsUpdated, TABS_ON_UPDATED_FILTER);
+			browser.tabs.onAttached.addListener(onTabsAttached);
+
+		} else if(!addListeners && browser.webRequest.onHeadersReceived.hasListener(onWebRequestHeadersReceived)) {
+
+			browser.webRequest.onHeadersReceived.removeListener(onWebRequestHeadersReceived);
+			browser.tabs.onUpdated.removeListener(onTabsUpdated);
+			browser.tabs.onAttached.removeListener(onTabsAttached);
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function handleBrowserButtonUI() {
+
+		let title, images;
+
+		if(m_ohpState === OHP_STATE.enabled) {
+			title = "OHP - Enabled";
+			images = BROWSER_ACTION_IMAGE_PATHS;
+		} else if(m_ohpState === OHP_STATE.ignoreNextRequest) {
+			title = "OHP - Ignore Next";
+			images = BROWSER_ACTION_IGNORE_NEXT_IMAGE_PATHS
+		} else if(m_ohpState === OHP_STATE.disabled) {
+			title = "OHP - Disabled";
+			images = BROWSER_ACTION_DISABLE_IMAGE_PATHS;
+		}
+
+		browser.browserAction.setTitle({ title: title });
+		browser.browserAction.setIcon({ path: images });
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
