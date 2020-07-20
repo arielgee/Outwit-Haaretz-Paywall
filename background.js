@@ -12,7 +12,6 @@
 	const URL_CDN_MRKR = "https://www-themarker-com.cdn.ampproject.org/v/s/www.themarker.com/amp/";
 
 	const QUERY_STRING_CDN = "?amp_js_v=0.1";
-	// const QUERY_STRING_CDN_FULL = "?usqp=mq331AQFKAGwASA%3D&amp_js_v=0.1#aoh=15939449457246&referrer=https%3A%2F%2Fwww.google.com&amp_tf=From%20%251%24s&ampshare=https%3A%2F%2Fwww.haaretz.co.il";
 
 
 	const WEB_REQUEST_FILTER = {
@@ -56,23 +55,13 @@
 		disabled: 2
 	};
 
-	const CSS_RULE_BODY =	"html:not([amp4ads]) body {" +
-								"margin-right: 15% !important;" +
-								"margin-left: 40% !important;" +
-								"font-size: 100% !important;" +
-							"}";
 
-	// const CSS_RULE_HIDE_STUFF =	".c-list-honda," +
-	// 							".c-list-honda__items," +
-	// 							".u-autospace--2," +
-	// 							".u-type--epsilon," +
-	// 							"amp-sticky-ad.i-amphtml-layout-nodisplay," +
-	// 							"amp-embed[data-ampurl]," +
-	// 							"amp-ad { " +
-	// 								"display: none !important;" +
-	// 							"}";
 
-	const CSS_RULES_PRETTY_PAGE = CSS_RULE_BODY;	// CSS_RULE_HIDE_STUFF is removed by uBlock
+	const CSS_RULES_PRETTY_PAGE =	"html:not([amp4ads]) body {" +
+										"margin-right: 15% !important;" +
+										"margin-left: 40% !important;" +
+										"font-size: 100% !important;" +
+									"}";
 
 	let m_ohpState;
 
