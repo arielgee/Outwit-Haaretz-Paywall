@@ -1,12 +1,13 @@
 {
 	"manifest_version": 2,
-	"applications": {
+	"browser_specific_settings": {
 		"gecko": {
 			"id": "outwit-haaretz-paywall@webExtension.arielg.il",
 			"strict_min_version": "68.0"
 		}
 	},
 	"name": "Outwit Haaretz Paywall",
+	"short_name": "OHP",
 	"version": "1.3",
 	"description": "Outwit the Haaretz paywall.",
 	"author": "arielg",
@@ -25,7 +26,8 @@
 		"48": "/icons/outwit-48.png"
 	},
 	"browser_action": {
-		"browser_style": true
+		"browser_style": false,
+		"default_title": "OHP",
 	},
 	"commands": {
 		"kb-ignore-next-request": {
