@@ -33,11 +33,23 @@
 		"default_icon": "/icons/outwit.svg"
 	},
 	"commands": {
-		"kb-ignore-next-request": {
+		"state-enable": {
+			"suggested_key": {
+				"default": "Alt+Shift+A"
+			},
+			"description": "Enable"
+		},
+		"state-ignore-next-req": {
 			"suggested_key": {
 				"default": "Alt+Shift+Z"
 			},
-			"description": "Ignore next Request"
+			"description": "Ignore next request"
+		},
+		"state-disable": {
+			"suggested_key": {
+				"default": "Alt+Shift+X"
+			},
+			"description": "Disable"
 		}
 	},
 	"background": {

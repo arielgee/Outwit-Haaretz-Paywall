@@ -32,21 +32,17 @@
 
 
 	const BROWSER_ACTION_TITLE = browser.runtime.getManifest().browser_action.default_title;
-
 	const OHP_STATE = {
-
 		enabled: {
 			id: 0,
 			title: BROWSER_ACTION_TITLE + " - Enabled",
 			icon: "/icons/outwit.svg"
 		},
-
 		ignoreNextRequest: {
 			id: 1,
 			title: BROWSER_ACTION_TITLE + " - Ignore Next",
 			icon: "/icons/outwit-ignore-next.svg"
 		},
-
 		disabled: {
 			id: 2,
 			title: BROWSER_ACTION_TITLE + " - Disabled",
@@ -84,13 +80,17 @@
 	////////////////////////////////////////////////////////////////////////////////////
 	function onBrowserActionClicked(tab) {
 
+		let oldId = m_ohpStateId;
+
 		if(m_ohpStateId === OHP_STATE.enabled.id) {
 			m_ohpStateId = OHP_STATE.ignoreNextRequest.id;
 		} else if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
 			m_ohpStateId = OHP_STATE.disabled.id;
-		} else if(m_ohpStateId === OHP_STATE.disabled.id) {
+		} else /*if(m_ohpStateId === OHP_STATE.disabled.id)*/ {
 			m_ohpStateId = OHP_STATE.enabled.id;
 		}
+
+		console.log("[Outwit-Haaretz-Paywall]", "state ID:", oldId, "➜", m_ohpStateId);
 
 		handleOHPListeners([ OHP_STATE.enabled.id, OHP_STATE.ignoreNextRequest.id ].includes(m_ohpStateId));
 		handleBrowserButtonUI();
@@ -99,14 +99,12 @@
 	////////////////////////////////////////////////////////////////////////////////////
 	function onCommands(command) {
 		switch (command) {
-
-			case "kb-ignore-next-request":
-				m_ohpStateId = OHP_STATE.ignoreNextRequest.id;
-				handleOHPListeners();
-				handleBrowserButtonUI();
-				break;
-				//////////////////////////////////////////////////////////////
+			case "state-enable":			m_ohpStateId = OHP_STATE.enabled.id;			break;
+			case "state-ignore-next-req":	m_ohpStateId = OHP_STATE.ignoreNextRequest.id;	break;
+			case "state-disable":			m_ohpStateId = OHP_STATE.disabled.id;			break;
 		}
+		handleOHPListeners();
+		handleBrowserButtonUI();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
