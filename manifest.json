@@ -16,6 +16,7 @@
 		"*://www.themarker.com/*",
 		"*://www-haaretz-co-il.cdn.ampproject.org/*",
 		"*://www-themarker-com.cdn.ampproject.org/*",
+		"storage",
 		"tabs",
 		"webRequest",
 		"webRequestBlocking"
@@ -30,7 +31,8 @@
 	"browser_action": {
 		"browser_style": false,
 		"default_title": "OHP",
-		"default_icon": "/icons/outwit.svg"
+		"default_icon": "/icons/outwit.svg",
+		"default_popup": "/popup/popup.html"
 	},
 	"commands": {
 		"state-enable": {

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Outwit Haaretz Paywall</title>
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="popup.css" />
+	<script src="popup.js"></script>
+</head>
+
+<body>
+
+	<h3>Outwit Haaretz Paywall</h3>
+
+	<div id="ohpStateGroup">
+		<div class="stateControl">
+			<input type="radio" id="stateEnable" class="ohpStateId" name="ohpSID" value="0"/><label for="stateEnable" class="controlLabel">Enable</label>
+		</div>
+		<div class="stateControl">
+			<input type="radio" id="stateIgnoreNext" class="ohpStateId" name="ohpSID" value="1"/><label for="stateIgnoreNext" class="controlLabel">Ignore Next Request</label>
+		</div>
+		<div class="stateControl">
+			<input type="radio" id="stateDisable" class="ohpStateId" name="ohpSID" value="2"/><label for="stateDisable" class="controlLabel">Disable</label>
+		</div>
+	</div>
+
+	<div id="footer">
+		<div id="version">v0.0</div>
+	</div>
+
+</body>
+
+</html>

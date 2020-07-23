@@ -1,6 +1,6 @@
 "use strict";
 
-(function () {
+let OHP = (function () {
 
 	const HOST_HAARETZ = "https://www.haaretz.co.il";
 	const HOST_THEMARKER = "https://www.themarker.com";
@@ -57,17 +57,19 @@
 										"font-size: 100% !important;" +
 									"}";
 
-	let m_ohpStateId;
+	let m_ohpStateId = -1;
 
 
 	initialization();
 
 	////////////////////////////////////////////////////////////////////////////////////
-	function initialization() {
+	async function initialization() {
 
-		m_ohpStateId = OHP_STATE.enabled.id;
-		handleOHPListeners();
-		handleBrowserButtonUI();
+		printLogHelp();
+
+		handleBrowserButtonPopup();
+		setOHPState(await getPreferenceValue("pref_stateId", OHP_STATE.enabled.id));
+		browser.runtime.onMessage.addListener(onRuntimeMessage);
 		browser.browserAction.onClicked.addListener(onBrowserActionClicked);
 		browser.commands.onCommand.addListener(onCommands);
 	}
@@ -78,33 +80,42 @@
 	////////////////////////////////////////////////////////////////////////////////////
 
 	////////////////////////////////////////////////////////////////////////////////////
-	function onBrowserActionClicked(tab) {
+	function onRuntimeMessage(message) {
 
-		let oldId = m_ohpStateId;
+		switch(message.id) {
 
-		if(m_ohpStateId === OHP_STATE.enabled.id) {
-			m_ohpStateId = OHP_STATE.ignoreNextRequest.id;
-		} else if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
-			m_ohpStateId = OHP_STATE.disabled.id;
-		} else /*if(m_ohpStateId === OHP_STATE.disabled.id)*/ {
-			m_ohpStateId = OHP_STATE.enabled.id;
+			case "msg_getOHPStateId":
+				return Promise.resolve({ ohpStateId: m_ohpStateId });
+				//////////////////////////////////////////////
+
+			case "msg_setOHPStateId":
+				setOHPState(message.ohpStateId);
+				break;
+				//////////////////////////////////////////////
 		}
+	}
 
-		console.log("[Outwit-Haaretz-Paywall]", "state ID:", oldId, "➜", m_ohpStateId);
-
-		handleOHPListeners([ OHP_STATE.enabled.id, OHP_STATE.ignoreNextRequest.id ].includes(m_ohpStateId));
-		handleBrowserButtonUI();
+	////////////////////////////////////////////////////////////////////////////////////
+	function onBrowserActionClicked(tab) {
+		if(m_ohpStateId === OHP_STATE.enabled.id) {
+			setOHPState(OHP_STATE.ignoreNextRequest.id);
+		} else if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
+			setOHPState(OHP_STATE.disabled.id);
+		} else /*if(m_ohpStateId === OHP_STATE.disabled.id)*/ {
+			setOHPState(OHP_STATE.enabled.id);
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
 	function onCommands(command) {
+
+		browser.runtime.sendMessage({ id: "msg_closePopupIfOpen" }).catch(() => {});
+
 		switch (command) {
-			case "state-enable":			m_ohpStateId = OHP_STATE.enabled.id;			break;
-			case "state-ignore-next-req":	m_ohpStateId = OHP_STATE.ignoreNextRequest.id;	break;
-			case "state-disable":			m_ohpStateId = OHP_STATE.disabled.id;			break;
+			case "state-enable":			setOHPState(OHP_STATE.enabled.id);				break;
+			case "state-ignore-next-req":	setOHPState(OHP_STATE.ignoreNextRequest.id);	break;
+			case "state-disable":			setOHPState(OHP_STATE.disabled.id);				break;
 		}
-		handleOHPListeners();
-		handleBrowserButtonUI();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
@@ -118,7 +129,7 @@
 
 				if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
 					m_ohpStateId = OHP_STATE.enabled.id;
-					handleBrowserButtonUI();
+					handleBrowserButtonStateUI();
 				} else if(m_ohpStateId === OHP_STATE.enabled.id) {
 					if(details.url.startsWith(HOST_HAARETZ)) {
 						objResolved = { redirectUrl: details.url.replace(RX_HAARETZ, URL_CDN_HRTZ + "$2" + QUERY_STRING_CDN) };
@@ -153,6 +164,19 @@
 	////////////////////////////////////////////////////////////////////////////////////
 
 	////////////////////////////////////////////////////////////////////////////////////
+	function setOHPState(stateId = OHP_STATE.enabled.id) {
+
+		let oldId = m_ohpStateId;
+
+		m_ohpStateId = stateId;
+		setPreferenceValue("pref_stateId", m_ohpStateId);
+		handleOHPListeners([ OHP_STATE.enabled.id, OHP_STATE.ignoreNextRequest.id ].includes(m_ohpStateId));
+		handleBrowserButtonStateUI();
+
+		console.log("[Outwit-Haaretz-Paywall]", "state change:", oldId, "➜", m_ohpStateId);
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
 	function handleOHPListeners(addListeners = true) {
 
 		if(addListeners && !browser.webRequest.onHeadersReceived.hasListener(onWebRequestHeadersReceived)) {
@@ -171,7 +195,7 @@
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
-	function handleBrowserButtonUI() {
+	function handleBrowserButtonStateUI() {
 
 		let state;
 
@@ -188,9 +212,72 @@
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
+	async function handleBrowserButtonPopup() {
+
+		let mobileBrowser = /\bMobile\b/i.test(navigator.userAgent);
+		let prefWithPopup = await getPreferenceValue("pref_withPopup", mobileBrowser);
+
+		/*	popup value:
+			+ Null. Reverts to default value specified in 'default_popup' in the manifest.
+			+ Empty string. Popup is disabled and extension will receive browserAction.onClicked events.
+		*/
+		browser.browserAction.setPopup({ popup: ( (mobileBrowser || prefWithPopup) ? null : "" ) });
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
 	function handleTabChangedState(tabId) {
 		browser.tabs.insertCSS(tabId, { runAt: "document_start", code: CSS_RULES_PRETTY_PAGE }).catch((error) => {
 			console.log("[Outwit-Haaretz-Paywall]", "inject CSS error:", error);
 		});
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function printLogHelp() {
+
+		let cssLineStyle = "line-height:200%;border-top:15px solid #232327;border-bottom:15px solid #232327;background-color:#232327;";
+		let cssHeaderStyle1 = cssLineStyle + "color:#ffff00;font-size:200%;font-weight:bold;";
+		let cssHeaderStyle2 = cssLineStyle + "color:#ff00ff;font-size:175%;";
+		let cssTextStyle1 = cssLineStyle + "color:#ff00ff;font-size:125%;font-weight:bold;";
+		let cssTextStyle2 = cssLineStyle + "color:#e9e9e9;font-size:125%;";
+		let cssCodeStyle = cssLineStyle + "color:#45a1ff;font-size:125%;font-family:monospace; ";
+
+		console.group("%c Extension: Outwit Haaretz Paywall\t\t", cssHeaderStyle1);
+		console.log("%c Changing Hidden Preferences:\t\t", cssHeaderStyle2);
+		console.log("%c   1. %cOpen web extension console (about:debugging ➜ Extensions ➜ Outwit Haaretz Paywall ➜ Inspect).\t\t", cssTextStyle1, cssTextStyle2);
+		console.log("%c   2. %cIn the newly opened Inspect page go to the 'Console' tab.\t\t", cssTextStyle1, cssTextStyle2);
+		console.log("%c   3. %cTo enable the toolbar button popup: Type %cOHP.withPopup()%c in the console and press enter.\t\t", cssTextStyle1, cssTextStyle2, cssCodeStyle, cssTextStyle2);
+		console.log("%c   4. %cTo disable the toolbar button popup: Type %cOHP.withoutPopup()%c in the console and press enter.\t\t", cssTextStyle1, cssTextStyle2, cssCodeStyle, cssTextStyle2);
+		console.log("%c\u200B", cssTextStyle1);		// zero width space
+		console.groupEnd();
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	//////////  P  R  E  F  E  R  E  N  C  E  S  ///////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function getPreferenceValue(pref, defValue) {
+		return new Promise((resolve) => {
+			browser.storage.local.get(pref).then((result) => {
+				resolve(result[pref] === undefined ? defValue : result[pref]);
+			});
+		});
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function setPreferenceValue(pref, value) {
+		return browser.storage.local.set({ [pref]: value });
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function setPref_withPopup(value) {
+		setPreferenceValue("pref_withPopup", value).then(() => handleBrowserButtonPopup());
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	////////// P U B L I C /////////////////////////////////////////////////////////////
+	return {
+		withPopup: () => setPref_withPopup(true),
+		withoutPopup: () => setPref_withPopup(false)
 	}
 })();
