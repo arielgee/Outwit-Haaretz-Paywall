@@ -10,6 +10,11 @@ let OHP = (function () {
 	const RX_HAARETZ = new RegExp("^(" + HOST_HAARETZ + "/)" + COMMON_RX_PART, "i");
 	const RX_THEMARKER = new RegExp("^(" + HOST_THEMARKER + "/)" + COMMON_RX_PART, "i");
 
+	// const RX_COMMON_PATTERN = "^({$$}/)(.*\\.premium)(\\.highlight)?([^\\?]*)(\\?.*)?$";
+
+	// const RX_HAARETZ = new RegExp(RX_COMMON_PATTERN.replace("{$$}", HOST_HAARETZ), "i");
+	// const RX_THEMARKER = new RegExp(RX_COMMON_PATTERN.replace("{$$}", HOST_THEMARKER), "i");
+
 	const URL_CDN_HRTZ = "https://www-haaretz-co-il.cdn.ampproject.org/v/s/www.haaretz.co.il/amp/";
 	const URL_CDN_MRKR = "https://www-themarker-com.cdn.ampproject.org/v/s/www.themarker.com/amp/";
 
