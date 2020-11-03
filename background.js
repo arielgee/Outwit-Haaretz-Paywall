@@ -176,7 +176,6 @@ let OHP = (function () {
 		let oldId = m_ohpStateId;
 
 		m_ohpStateId = stateId;
-		setPreferenceValue("pref_stateId", m_ohpStateId);
 		handleOHPListeners([ OHP_STATE.enabled.id, OHP_STATE.ignoreNextRequest.id ].includes(m_ohpStateId));
 		handleBrowserButtonStateUI();
 
@@ -216,6 +215,7 @@ let OHP = (function () {
 
 		browser.browserAction.setTitle({ title: state.title });
 		browser.browserAction.setIcon({ path: state.icon });
+		setPreferenceValue("pref_stateId", m_ohpStateId);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
