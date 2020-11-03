@@ -214,7 +214,12 @@ let OHP = (function () {
 		}
 
 		browser.browserAction.setTitle({ title: state.title });
-		browser.browserAction.setIcon({ path: state.icon });
+		try {
+			// Ignore is not supported
+			// browserAction.setIcon not supported in Firefox for Android v68.0. Support starts from v79.0
+			browser.browserAction.setIcon({ path: state.icon });
+		} catch {}
+
 		setPreferenceValue("pref_stateId", m_ohpStateId);
 	}
 
