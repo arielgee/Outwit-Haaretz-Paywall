@@ -5,15 +5,10 @@ let OHP = (function () {
 	const HOST_HAARETZ = "https://www.haaretz.co.il";
 	const HOST_THEMARKER = "https://www.themarker.com";
 
-	const COMMON_RX_PART = "(.*\\.premium)(\\.highlight)?([^\\?]*)(\\?.*)?$";
+	const COMMON_RX_PATTERN = "^({$$}/)(.*)(\\.premium)(\\.highlight)?([^\\?]*)(\\?.*)?$";
 
-	const RX_HAARETZ = new RegExp("^(" + HOST_HAARETZ + "/)" + COMMON_RX_PART, "i");
-	const RX_THEMARKER = new RegExp("^(" + HOST_THEMARKER + "/)" + COMMON_RX_PART, "i");
-
-	// const RX_COMMON_PATTERN = "^({$$}/)(.*\\.premium)(\\.highlight)?([^\\?]*)(\\?.*)?$";
-
-	// const RX_HAARETZ = new RegExp(RX_COMMON_PATTERN.replace("{$$}", HOST_HAARETZ), "i");
-	// const RX_THEMARKER = new RegExp(RX_COMMON_PATTERN.replace("{$$}", HOST_THEMARKER), "i");
+	const RX_HAARETZ = new RegExp(COMMON_RX_PATTERN.replace("{$$}", HOST_HAARETZ), "i");
+	const RX_THEMARKER = new RegExp(COMMON_RX_PATTERN.replace("{$$}", HOST_THEMARKER), "i");
 
 	const URL_CDN_HRTZ = "https://www-haaretz-co-il.cdn.ampproject.org/v/s/www.haaretz.co.il/amp/";
 	const URL_CDN_MRKR = "https://www-themarker-com.cdn.ampproject.org/v/s/www.themarker.com/amp/";
@@ -139,9 +134,9 @@ let OHP = (function () {
 					handleBrowserButtonStateUI();
 				} else if(m_ohpStateId === OHP_STATE.enabled.id) {
 					if(details.url.startsWith(HOST_HAARETZ)) {
-						objResolved = { redirectUrl: details.url.replace(RX_HAARETZ, URL_CDN_HRTZ + "$2$4" + QUERY_STRING_CDN) };
+						objResolved = { redirectUrl: details.url.replace(RX_HAARETZ, URL_CDN_HRTZ + "$3$5" + QUERY_STRING_CDN) };
 					} else if(details.url.startsWith(HOST_THEMARKER)) {
-						objResolved = { redirectUrl: details.url.replace(RX_THEMARKER, URL_CDN_MRKR + "$2$4" + QUERY_STRING_CDN) };
+						objResolved = { redirectUrl: details.url.replace(RX_THEMARKER, URL_CDN_MRKR + "$3$5" + QUERY_STRING_CDN) };
 					}
 				}
 			}
