@@ -5,7 +5,7 @@ let OHP = (function () {
 	const HOST_HAARETZ = "https://www.haaretz.co.il";
 	const HOST_THEMARKER = "https://www.themarker.com";
 
-	const COMMON_RX_PATTERN = "^({$$}/)(.*)(\\.premium)(\\.highlight)?([^\\?]*)(\\?.*)?$";
+	const COMMON_RX_PATTERN = "^({$$}/)(.*)(\\d\\.\\d+)(\\?.*)?$";
 
 	const RX_HAARETZ = new RegExp(COMMON_RX_PATTERN.replace("{$$}", HOST_HAARETZ), "i");
 	const RX_THEMARKER = new RegExp(COMMON_RX_PATTERN.replace("{$$}", HOST_THEMARKER), "i");
@@ -15,11 +15,14 @@ let OHP = (function () {
 
 	const QUERY_STRING_CDN = "?amp_js_v=0.1";
 
+	const HRTZ_REPLACEMENT = `${URL_CDN_HRTZ}$3${QUERY_STRING_CDN}`;
+	const MRKR_REPLACEMENT = `${URL_CDN_MRKR}$3${QUERY_STRING_CDN}`;
+
 
 	const WEB_REQUEST_FILTER = {
 		urls: [
-			HOST_HAARETZ + "/*.premium*",
-			HOST_THEMARKER + "/*.premium*"
+			HOST_HAARETZ + "/*/*",
+			HOST_THEMARKER + "/*/*"
 		],
 		types: [ "main_frame" ]
 	};
@@ -130,13 +133,22 @@ let OHP = (function () {
 			if(details.statusCode === 200) {
 
 				if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
+
 					m_ohpStateId = OHP_STATE.enabled.id;
 					handleBrowserButtonStateUI();
+
 				} else if(m_ohpStateId === OHP_STATE.enabled.id) {
-					if(details.url.startsWith(HOST_HAARETZ)) {
-						objResolved = { redirectUrl: details.url.replace(RX_HAARETZ, URL_CDN_HRTZ + "$3$5" + QUERY_STRING_CDN) };
-					} else if(details.url.startsWith(HOST_THEMARKER)) {
-						objResolved = { redirectUrl: details.url.replace(RX_THEMARKER, URL_CDN_MRKR + "$3$5" + QUERY_STRING_CDN) };
+
+					let redirectUrl, url = details.url;
+
+					if(url.startsWith(HOST_HAARETZ)) {
+						redirectUrl = url.replace(RX_HAARETZ, HRTZ_REPLACEMENT);
+					} else if(url.startsWith(HOST_THEMARKER)) {
+						redirectUrl = url.replace(RX_THEMARKER, MRKR_REPLACEMENT);
+					}
+
+					if( !!redirectUrl && redirectUrl !== url ) {
+						objResolved["redirectUrl"] = redirectUrl;
 					}
 				}
 			}
