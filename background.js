@@ -22,7 +22,7 @@ let OHP = (function () {
 	const WEB_REQUEST_FILTER = {
 		urls: [
 			HOST_HAARETZ + "/*/*",
-			HOST_THEMARKER + "/*/*"
+			HOST_THEMARKER + "/*/*",
 		],
 		types: [ "main_frame" ]
 	};
@@ -30,7 +30,7 @@ let OHP = (function () {
 	const TABS_ON_UPDATED_FILTER = {
 		urls: [
 			URL_CDN_HRTZ + "*",
-			URL_CDN_MRKR + "*"
+			URL_CDN_MRKR + "*",
 		],
 		properties: [ "status" ]
 	};
@@ -41,18 +41,18 @@ let OHP = (function () {
 		enabled: {
 			id: 0,
 			title: BROWSER_ACTION_TITLE + " - Enabled",
-			icon: "/icons/outwit.svg"
+			icon: "/icons/outwit.svg",
 		},
 		ignoreNextRequest: {
 			id: 1,
 			title: BROWSER_ACTION_TITLE + " - Ignore Next",
-			icon: "/icons/outwit-ignore-next.svg"
+			icon: "/icons/outwit-ignore-next.svg",
 		},
 		disabled: {
 			id: 2,
 			title: BROWSER_ACTION_TITLE + " - Disabled",
-			icon: "/icons/outwit-disabled.svg"
-		}
+			icon: "/icons/outwit-disabled.svg",
+		},
 	}
 
 
@@ -222,7 +222,7 @@ let OHP = (function () {
 
 		browser.browserAction.setTitle({ title: state.title });
 		try {
-			// Ignore is not supported
+			// Ignore if not supported
 			// browserAction.setIcon not supported in Firefox for Android v68.0. Support starts from v79.0
 			browser.browserAction.setIcon({ path: state.icon });
 		} catch {}
@@ -253,7 +253,7 @@ let OHP = (function () {
 	////////////////////////////////////////////////////////////////////////////////////
 	function printLogHelp() {
 
-		let cssLineStyle = "line-height:200%;border-top:15px solid #232327;border-bottom:15px solid #232327;background-color:#232327;";
+		let cssLineStyle = "white-space:nowrap;border-top:15px solid #232327;border-bottom:15px solid #232327;background-color:#232327;";
 		let cssHeaderStyle1 = cssLineStyle + "color:#ffff00;font-size:200%;font-weight:bold;";
 		let cssHeaderStyle2 = cssLineStyle + "color:#ff00ff;font-size:175%;";
 		let cssTextStyle1 = cssLineStyle + "color:#ff00ff;font-size:125%;font-weight:bold;";
