@@ -76,6 +76,15 @@ let OHP = (function () {
 										"font-size: 100% !important;" +
 									"}";
 
+	const JS_SEND_MSG_REVERT_TAB =	"document.addEventListener('keydown', async (e) => {" +
+										"if(e.ctrlKey && e.altKey && e.code === 'KeyR') {" +
+											"browser.runtime.sendMessage({" +
+												"id: 'msg_revertThisTab'," +
+												"tabId: $1," +
+											"});" +
+										"}" +
+									"});";
+
 	const MAX_MAP_REDIRECTED_URLS_ENTRIES = 300;
 
 	let m_ohpStateId = -1;
@@ -113,6 +122,12 @@ let OHP = (function () {
 
 			case "msg_setOHPStateId":
 				setOHPState(message.ohpStateId);
+				break;
+				//////////////////////////////////////////////
+
+			case "msg_revertThisTab":
+				setOHPState(OHP_STATE.revertNextRequest.id);
+				browser.tabs.reload(message.tabId);
 				break;
 				//////////////////////////////////////////////
 		}
@@ -266,8 +281,20 @@ let OHP = (function () {
 
 	////////////////////////////////////////////////////////////////////////////////////
 	function handleTabChangedState(tabId) {
-		browser.tabs.insertCSS(tabId, { runAt: "document_start", code: CSS_RULES_PRETTY_PAGE }).catch((error) => {
-			console.log("[Outwit-Haaretz-Paywall]", "inject CSS error:", error);
+
+		browser.tabs.executeScript(tabId, { runAt: "document_idle", code: "let g_injectSourceCodeRedeclarationFlag = true;" }).then(() => {
+
+			browser.tabs.insertCSS(tabId, { runAt: "document_start", code: CSS_RULES_PRETTY_PAGE }).catch((error) => {
+				console.log("[Outwit-Haaretz-Paywall]", "inject CSS error:", error);
+			});
+			browser.tabs.executeScript(tabId, { runAt: "document_idle", code: JS_SEND_MSG_REVERT_TAB.replace("$1", tabId) }).catch((error) => {
+				console.log("[Outwit-Haaretz-Paywall]", "inject JS error:", error);
+			});
+
+		}).catch((error) => {
+			if( !error.message.startsWith("redeclaration") ) {
+				console.log("[Outwit-Haaretz-Paywall]", "inject redeclaration flag error:", error);
+			}
 		});
 	}
 
