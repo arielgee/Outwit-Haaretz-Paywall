@@ -63,6 +63,10 @@ let OHP = (function () {
 			title: BROWSER_ACTION_TITLE + " - Disabled",
 			icon: "/icons/outwit-disabled.svg",
 		},
+
+		// pseudo states
+		lowerBound: { id: 0 },
+		upperBound: { id: 3 },
 	}
 
 
@@ -116,15 +120,7 @@ let OHP = (function () {
 
 	////////////////////////////////////////////////////////////////////////////////////
 	function onBrowserActionClicked(tab) {
-		if(m_ohpStateId === OHP_STATE.enabled.id) {
-			setOHPState(OHP_STATE.ignoreNextRequest.id);
-		} else if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
-			setOHPState(OHP_STATE.revertNextRequest.id);
-		} else if(m_ohpStateId === OHP_STATE.revertNextRequest.id) {
-			setOHPState(OHP_STATE.disabled.id);
-		} else /*if(m_ohpStateId === OHP_STATE.disabled.id)*/ {
-			setOHPState(OHP_STATE.enabled.id);
-		}
+		setOHPState(m_ohpStateId+1 > OHP_STATE.upperBound.id ? OHP_STATE.lowerBound.id : m_ohpStateId+1);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
