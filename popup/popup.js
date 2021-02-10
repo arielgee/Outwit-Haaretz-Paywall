@@ -4,6 +4,7 @@
 
 	let m_elmStateEnable;
 	let m_elmStateIgnoreNext;
+	let m_elmStateRevertNext;
 	let m_elmStateDisable;
 
 	initialization();
@@ -29,10 +30,12 @@
 
 		m_elmStateEnable = document.getElementById("stateEnable");
 		m_elmStateIgnoreNext = document.getElementById("stateIgnoreNext");
+		m_elmStateRevertNext = document.getElementById("stateRevertNext");
 		m_elmStateDisable = document.getElementById("stateDisable");
 
 		m_elmStateEnable.addEventListener("change", onChangeOHPState);
 		m_elmStateIgnoreNext.addEventListener("change", onChangeOHPState);
+		m_elmStateRevertNext.addEventListener("change", onChangeOHPState);
 		m_elmStateDisable.addEventListener("change", onChangeOHPState);
 
 		setOHPStateId();
@@ -45,6 +48,7 @@
 
 		m_elmStateEnable.removeEventListener("change", onChangeOHPState);
 		m_elmStateIgnoreNext.removeEventListener("change", onChangeOHPState);
+		m_elmStateRevertNext.removeEventListener("change", onChangeOHPState);
 		m_elmStateDisable.removeEventListener("change", onChangeOHPState);
 	}
 
@@ -56,7 +60,7 @@
 			let ohpStateId = !!response ? response.ohpStateId : undefined;
 
 			// state ID values
-			if([0, 1, 2].includes(ohpStateId)) {
+			if([0, 1, 2, 3].includes(ohpStateId)) {
 				document.querySelector(".ohpStateId[value=\"" + ohpStateId + "\"]").checked = true;
 			} else {
 				window.close();

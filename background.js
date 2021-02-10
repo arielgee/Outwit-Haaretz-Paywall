@@ -18,11 +18,16 @@ let OHP = (function () {
 	const HRTZ_REPLACEMENT = `${URL_CDN_HRTZ}$3${QUERY_STRING_CDN}`;
 	const MRKR_REPLACEMENT = `${URL_CDN_MRKR}$3${QUERY_STRING_CDN}`;
 
+	const HRTZ_REVERT_REPLACEMENT = `${HOST_HAARETZ}/`;
+	const MRKR_REVERT_REPLACEMENT = `${HOST_THEMARKER}/`;
+
 
 	const WEB_REQUEST_FILTER = {
 		urls: [
 			HOST_HAARETZ + "/*/*",
 			HOST_THEMARKER + "/*/*",
+			URL_CDN_HRTZ + "*",
+			URL_CDN_MRKR + "*",
 		],
 		types: [ "main_frame" ]
 	};
@@ -48,8 +53,13 @@ let OHP = (function () {
 			title: BROWSER_ACTION_TITLE + " - Ignore Next",
 			icon: "/icons/outwit-ignore-next.svg",
 		},
-		disabled: {
+		revertNextRequest: {
 			id: 2,
+			title: BROWSER_ACTION_TITLE + " - Revert Next",
+			icon: "/icons/outwit-revert-next.svg",
+		},
+		disabled: {
+			id: 3,
 			title: BROWSER_ACTION_TITLE + " - Disabled",
 			icon: "/icons/outwit-disabled.svg",
 		},
@@ -62,7 +72,11 @@ let OHP = (function () {
 										"font-size: 100% !important;" +
 									"}";
 
+	const MAX_MAP_REDIRECTED_URLS_ENTRIES = 300;
+
 	let m_ohpStateId = -1;
+	let m_mapRedirectedUrls = new Map();
+	let m_webRequestIdToIgnore = 0;
 
 
 	initialization();
@@ -105,6 +119,8 @@ let OHP = (function () {
 		if(m_ohpStateId === OHP_STATE.enabled.id) {
 			setOHPState(OHP_STATE.ignoreNextRequest.id);
 		} else if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
+			setOHPState(OHP_STATE.revertNextRequest.id);
+		} else if(m_ohpStateId === OHP_STATE.revertNextRequest.id) {
 			setOHPState(OHP_STATE.disabled.id);
 		} else /*if(m_ohpStateId === OHP_STATE.disabled.id)*/ {
 			setOHPState(OHP_STATE.enabled.id);
@@ -119,6 +135,7 @@ let OHP = (function () {
 		switch (command) {
 			case "state-enable":			setOHPState(OHP_STATE.enabled.id);				break;
 			case "state-ignore-next-req":	setOHPState(OHP_STATE.ignoreNextRequest.id);	break;
+			case "state-revert-next-req":	setOHPState(OHP_STATE.revertNextRequest.id);	break;
 			case "state-disable":			setOHPState(OHP_STATE.disabled.id);				break;
 		}
 	}
@@ -137,17 +154,23 @@ let OHP = (function () {
 					m_ohpStateId = OHP_STATE.enabled.id;
 					handleBrowserButtonStateUI();
 
-				} else if(m_ohpStateId === OHP_STATE.enabled.id) {
+				} else if(m_ohpStateId === OHP_STATE.revertNextRequest.id) {
 
-					let redirectUrl, url = details.url;
+					let redirectUrl = getRedirectUrlToHost(details.url);
 
-					if(url.startsWith(HOST_HAARETZ)) {
-						redirectUrl = url.replace(RX_HAARETZ, HRTZ_REPLACEMENT);
-					} else if(url.startsWith(HOST_THEMARKER)) {
-						redirectUrl = url.replace(RX_THEMARKER, MRKR_REPLACEMENT);
+					if( !!redirectUrl && redirectUrl !== details.url ) {
+						objResolved["redirectUrl"] = redirectUrl;
+						m_webRequestIdToIgnore = details.requestId;
 					}
 
-					if( !!redirectUrl && redirectUrl !== url ) {
+					m_ohpStateId = OHP_STATE.enabled.id;
+					handleBrowserButtonStateUI();
+
+				} else if(m_ohpStateId === OHP_STATE.enabled.id && m_webRequestIdToIgnore !== details.requestId) {
+
+					let redirectUrl = getRedirectUrlToCDN(details.url);
+
+					if( !!redirectUrl && redirectUrl !== details.url ) {
 						objResolved["redirectUrl"] = redirectUrl;
 					}
 				}
@@ -183,7 +206,7 @@ let OHP = (function () {
 		let oldId = m_ohpStateId;
 
 		m_ohpStateId = stateId;
-		handleOHPListeners([ OHP_STATE.enabled.id, OHP_STATE.ignoreNextRequest.id ].includes(m_ohpStateId));
+		handleOHPListeners([ OHP_STATE.enabled.id, OHP_STATE.ignoreNextRequest.id, OHP_STATE.revertNextRequest.id ].includes(m_ohpStateId));
 		handleBrowserButtonStateUI();
 
 		console.log("[Outwit-Haaretz-Paywall]", "state change:", oldId, "➜", m_ohpStateId);
@@ -216,6 +239,8 @@ let OHP = (function () {
 			state = OHP_STATE.enabled;
 		} else if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
 			state = OHP_STATE.ignoreNextRequest;
+		} else if(m_ohpStateId === OHP_STATE.revertNextRequest.id) {
+			state = OHP_STATE.revertNextRequest;
 		} else if(m_ohpStateId === OHP_STATE.disabled.id) {
 			state = OHP_STATE.disabled;
 		}
@@ -248,6 +273,56 @@ let OHP = (function () {
 		browser.tabs.insertCSS(tabId, { runAt: "document_start", code: CSS_RULES_PRETTY_PAGE }).catch((error) => {
 			console.log("[Outwit-Haaretz-Paywall]", "inject CSS error:", error);
 		});
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function getRedirectUrlToCDN(url) {
+
+		purgeMapRedirectedUrls(MAX_MAP_REDIRECTED_URLS_ENTRIES);
+
+		let redirectUrl;
+
+		if(url.startsWith(HOST_HAARETZ)) {
+			redirectUrl = url.replace(RX_HAARETZ, HRTZ_REPLACEMENT);
+			m_mapRedirectedUrls.set(redirectUrl, url);
+		} else if(url.startsWith(HOST_THEMARKER)) {
+			redirectUrl = url.replace(RX_THEMARKER, MRKR_REPLACEMENT);
+			m_mapRedirectedUrls.set(redirectUrl, url);
+		}
+		return redirectUrl;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function getRedirectUrlToHost(url) {
+
+		let redirectUrl = m_mapRedirectedUrls.get(url);
+
+		// fallback
+		if(!!!redirectUrl) {
+			if(url.startsWith(URL_CDN_HRTZ)) {
+				return url.replace(URL_CDN_HRTZ, HRTZ_REVERT_REPLACEMENT).replace(QUERY_STRING_CDN, "");
+			} else if(url.startsWith(URL_CDN_MRKR)) {
+				return url.replace(URL_CDN_MRKR, MRKR_REVERT_REPLACEMENT).replace(QUERY_STRING_CDN, "");;
+			}
+		}
+		return redirectUrl;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function purgeMapRedirectedUrls(maxSize) {
+
+		let count = m_mapRedirectedUrls.size - maxSize;
+
+		let asyncPurge = () => {
+			let keys = Array.from(m_mapRedirectedUrls.keys()).slice(0, count);
+			for(let i=0, len=keys.length; i<len; i++) {
+				m_mapRedirectedUrls.delete(keys[i]);
+			}
+		};
+
+		if(count > 0) {
+			setTimeout(asyncPurge, 1);
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////

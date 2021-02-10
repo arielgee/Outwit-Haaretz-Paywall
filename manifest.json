@@ -47,6 +47,12 @@
 			},
 			"description": "Ignore next request"
 		},
+		"state-revert-next-req": {
+			"suggested_key": {
+				"default": "Alt+Shift+R"
+			},
+			"description": "Revert next request"
+		},
 		"state-disable": {
 			"suggested_key": {
 				"default": "Alt+Shift+X"
