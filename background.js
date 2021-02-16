@@ -158,7 +158,7 @@ let OHP = (function () {
 
 			let objResolved = {};
 
-			if(details.statusCode === 200) {
+			if(details.statusCode === 200 || m_ohpStateId === OHP_STATE.revertNextRequest.id) {
 
 				if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
 
