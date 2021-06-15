@@ -18,6 +18,7 @@
 		"*://www-themarker-com.cdn.ampproject.org/*",
 		"storage",
 		"tabs",
+		"menus",
 		"webRequest",
 		"webRequestBlocking"
 	],

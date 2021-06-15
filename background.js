@@ -89,6 +89,7 @@ let OHP = (function () {
 
 	let m_ohpStateId = -1;
 	let m_mapRedirectedUrls = new Map();
+	let m_disabledTabs = [];
 	let m_webRequestIdToIgnore = 0;
 
 
@@ -99,10 +100,13 @@ let OHP = (function () {
 
 		printLogHelp();
 
+		createMenus();
 		handleBrowserButtonPopup();
 		setOHPState(await getPreferenceValue("pref_stateId", OHP_STATE.enabled.id));
 		browser.runtime.onMessage.addListener(onRuntimeMessage);
 		browser.browserAction.onClicked.addListener(onBrowserActionClicked);
+		browser.menus.onShown.addListener(onMenusShown);
+		browser.menus.onClicked.addListener(onMenusClicked);
 		browser.commands.onCommand.addListener(onCommands);
 	}
 
@@ -139,6 +143,53 @@ let OHP = (function () {
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
+	function onMenusShown(info, tab) {
+
+		if( tab.url.startsWith(HOST_HAARETZ) || tab.url.startsWith(HOST_THEMARKER) ) {
+
+			browser.menus.update("mnu-revert-tab", { visible: false });
+			browser.menus.update("mnu-disable-for-this-tab", { visible: true, checked: m_disabledTabs.includes(`${tab.windowId}.${tab.id}`) });
+
+		} else if( tab.url.startsWith(URL_CDN_HRTZ) || tab.url.startsWith(URL_CDN_MRKR) ) {
+
+			browser.menus.update("mnu-revert-tab", { visible: true });
+			browser.menus.update("mnu-disable-for-this-tab", { visible: false });
+
+		} else {
+
+			browser.menus.update("mnu-revert-tab", { visible: false });
+			browser.menus.update("mnu-disable-for-this-tab", { visible: false });
+		}
+
+		browser.menus.refresh();
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function onMenusClicked(info, tab) {
+
+		switch (info.menuItemId) {
+
+			case "mnu-revert-tab":
+				setOHPState(OHP_STATE.revertNextRequest.id);
+				browser.tabs.reload(tab.id);
+				break;
+				//////////////////////////////////////////////
+
+			case "mnu-disable-for-this-tab":
+				if(info.checked) {
+					m_disabledTabs.push(`${tab.windowId}.${tab.id}`);
+				} else {
+					let idx = m_disabledTabs.indexOf(`${tab.windowId}.${tab.id}`);
+					if(idx > -1) {
+						m_disabledTabs.splice(idx, 1);
+					}
+				}
+				break;
+				//////////////////////////////////////////////
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
 	function onCommands(command) {
 
 		browser.runtime.sendMessage({ id: "msg_closePopupIfOpen" }).catch(() => {});
@@ -154,11 +205,17 @@ let OHP = (function () {
 	////////////////////////////////////////////////////////////////////////////////////
 	function onWebRequestHeadersReceived(details) {
 
-		return new Promise((resolve) => {
+		return new Promise(async (resolve) => {
 
 			let objResolved = {};
 
-			if(details.statusCode === 200 || m_ohpStateId === OHP_STATE.revertNextRequest.id) {
+			let windowInfo = await browser.windows.getCurrent();
+
+			if(m_disabledTabs.includes(`${windowInfo.id}.${details.tabId}`)) {
+
+				resolve(objResolved);
+
+			} else if(details.statusCode === 200 || m_ohpStateId === OHP_STATE.revertNextRequest.id) {
 
 				if(m_ohpStateId === OHP_STATE.ignoreNextRequest.id) {
 
@@ -210,6 +267,25 @@ let OHP = (function () {
 	////////////////////////////////////////////////////////////////////////////////////
 	//////////  H  A  N  D  L  E  S  ///////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////
+
+	////////////////////////////////////////////////////////////////////////////////////
+	function createMenus() {
+
+		browser.menus.create({
+			id: "mnu-revert-tab",
+			title: "Revert Tab",
+			contexts: ["tab", "all"],
+			icons: { "16": "/icons/outwit-revert-next.svg" },
+		});
+
+		browser.menus.create({
+			id: "mnu-disable-for-this-tab",
+			title: "Disable OHP For This Tab",
+			contexts: ["tab", "all"],
+			icons: { "16": "/icons/outwit-disabled.svg" },
+			type: "checkbox",
+		});
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////
 	function setOHPState(stateId = OHP_STATE.enabled.id) {
